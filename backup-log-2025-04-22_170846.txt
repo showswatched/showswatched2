@@ -1,0 +1,7 @@
+warning: in the working copy of '.gitignore', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'backup-to-github.bat', LF will be replaced by CRLF the next time Git touches it
+[main 17b65eb] Automated backup Tue 04/22/2025 17:08:46.79
+ 3 files changed, 58 insertions(+), 3 deletions(-)
+ create mode 100644 backup-log-2025-04-22_170846.txt
+To https://github.com/showswatched/showswatched2.git
+   c33919c..17b65eb  main -> main

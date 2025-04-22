@@ -22,3 +22,34 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Environment variables and sensitive files
+.env
+.env.*
+
+# OS generated files
+Thumbs.db
+.DS_Store
+
+# Build output
+build
+
+# Firebase/other secret files
+firebase-debug.log
+serviceAccountKey.json
+
+# Misc
+*.pem
+*.key
+*.crt
+
+# PWA cache
+workbox-*
+
+# Backup and temp
+*.bak
+*.tmp
+
+# Ignore public icons if you want to keep them private
+# public/icon-192.png
+# public/icon-512.png

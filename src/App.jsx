@@ -12,6 +12,7 @@ import PrivateRoute from './PrivateRoute';
 import MyShows from './MyShows';
 import AdminDashboard from './AdminDashboard';
 import Home from './Home';
+import UserDashboard from './UserDashboard';
 
 // Helper to check admin (for demo: set admin UID in code, or check Firestore user doc)
 const ADMIN_UIDS = [
@@ -130,11 +131,7 @@ export default function App() {
           <AdminDashboard />
         </PrivateRoute>
       } />
-      <Route path="/dashboard" element={
-        <PrivateRoute>
-          <Dashboard />
-        </PrivateRoute>
-      } />
+      <Route path="/dashboard" element={<UserDashboard />} />
       <Route path="/" element={
         currentUser ? <Navigate to="/dashboard" /> : <Home />
       } />

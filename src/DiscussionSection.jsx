@@ -1,10 +1,11 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { db } from './firebase';
-import { collection, addDoc, query, orderBy, onSnapshot, updateDoc, doc, increment, serverTimestamp, deleteDoc } from 'firebase/firestore';
+import { collection, addDoc, query, orderBy, onSnapshot, updateDoc, doc, increment, serverTimestamp, deleteDoc, getDoc } from 'firebase/firestore';
 import { useAuth } from './AuthContext';
 import './Home.css';
 
 function DiscussionSection({ entryId }) {
+  console.log("entryId:", entryId);
   const { currentUser } = useAuth();
   const [comments, setComments] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -15,22 +16,37 @@ function DiscussionSection({ entryId }) {
   const [collapsed, setCollapsed] = useState(true);
   const commentInputRef = useRef(null);
 
+  // Utility to fetch display name for current user
+  async function getDisplayName(currentUser) {
+    if (!currentUser) return 'Anonymous';
+    try {
+      const userDocSnap = await getDoc(doc(db, 'users', currentUser.uid));
+      if (userDocSnap && userDocSnap.exists()) {
+        const data = userDocSnap.data();
+        return data.displayName || currentUser.displayName || (currentUser.email ? currentUser.email.split('@')[0] : currentUser.uid);
+      }
+    } catch (e) {}
+    return currentUser.displayName || (currentUser.email ? currentUser.email.split('@')[0] : currentUser.uid);
+  }
+
   useEffect(() => {
-    if (!currentUser) return;
     const q = query(
-      collection(db, `diaryEntries/${entryId}/discussions`),
+      collection(db, `discussions/${entryId}/comments`),
       orderBy('timestamp', 'asc')
     );
     const unsub = onSnapshot(q, (snapshot) => {
-      const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data(), votes: doc.data().votes || {} }));
+      console.log("Fetched comments:", data);
       setComments(data);
-      const votes = {};
-      data.forEach(comment => {
-        if (comment.votes && comment.votes[currentUser.uid]) {
-          votes[comment.id] = comment.votes[currentUser.uid];
-        }
-      });
-      setUserVotes(votes);
+      if (currentUser) {
+        const votes = {};
+        data.forEach(comment => {
+          if (comment.votes && comment.votes[currentUser.uid]) {
+            votes[comment.id] = comment.votes[currentUser.uid];
+          }
+        });
+        setUserVotes(votes);
+      }
       setLoading(false);
     });
     return () => unsub();
@@ -39,10 +55,11 @@ function DiscussionSection({ entryId }) {
   const handleAddComment = async (e) => {
     e.preventDefault();
     if (!newComment.trim()) return;
-    await addDoc(collection(db, `diaryEntries/${entryId}/discussions`), {
+    const author = await getDisplayName(currentUser);
+    await addDoc(collection(db, `discussions/${entryId}/comments`), {
       text: newComment,
-      author: currentUser.email,
-      authorUid: currentUser.uid,
+      author,
+      authorUid: currentUser ? currentUser.uid : null,
       timestamp: serverTimestamp(),
       parentId: null,
       upvotes: 0,
@@ -56,10 +73,11 @@ function DiscussionSection({ entryId }) {
 
   const handleReply = async (parentId) => {
     if (!replyText.trim()) return;
-    await addDoc(collection(db, `diaryEntries/${entryId}/discussions`), {
+    const author = await getDisplayName(currentUser);
+    await addDoc(collection(db, `discussions/${entryId}/comments`), {
       text: replyText,
-      author: currentUser.email,
-      authorUid: currentUser.uid,
+      author,
+      authorUid: currentUser ? currentUser.uid : null,
       timestamp: serverTimestamp(),
       parentId,
       upvotes: 0,
@@ -73,25 +91,27 @@ function DiscussionSection({ entryId }) {
 
   const handleVote = async (commentId, type) => {
     if (!currentUser) return;
-    const ref = doc(db, `diaryEntries/${entryId}/discussions`, commentId);
+    const ref = doc(db, `discussions/${entryId}/comments`, commentId);
     const comment = comments.find(c => c.id === commentId);
     if (!comment) return;
     const prevVote = comment.votes ? comment.votes[currentUser.uid] : undefined;
-    if (prevVote === type) return;
+    // Only allow one vote per user per comment
     let update = {};
     if (type === 'up') {
       update = {
-        upvotes: increment(1),
+        upvotes: prevVote === 'up' ? increment(0) : increment(1),
         ...(prevVote === 'down' ? { downvotes: increment(-1) } : {}),
         [`votes.${currentUser.uid}`]: 'up',
       };
     } else if (type === 'down') {
       update = {
-        downvotes: increment(1),
+        downvotes: prevVote === 'down' ? increment(0) : increment(1),
         ...(prevVote === 'up' ? { upvotes: increment(-1) } : {}),
         [`votes.${currentUser.uid}`]: 'down',
       };
     }
+    // Optimistically update userVotes for instant UI feedback
+    setUserVotes(prev => ({ ...prev, [commentId]: type }));
     await updateDoc(ref, update);
   };
 
@@ -99,21 +119,57 @@ function DiscussionSection({ entryId }) {
     if (!currentUser) return;
     const comment = comments.find(c => c.id === commentId);
     if (!comment || comment.authorUid !== currentUser.uid) return;
+    // Recursive delete: only delete comments where current user is the author
     const deleteWithReplies = async (id) => {
       const replies = comments.filter(c => c.parentId === id);
       for (const reply of replies) {
-        await deleteWithReplies(reply.id);
+        if (reply.authorUid === currentUser.uid) {
+          await deleteWithReplies(reply.id);
+        }
+        // If not author, skip (cannot delete due to Firestore rules)
       }
-      await deleteDoc(doc(db, `diaryEntries/${entryId}/discussions`, id));
+      // Only delete if the current user is the author (extra safety)
+      const toDelete = comments.find(c => c.id === id);
+      if (toDelete && toDelete.authorUid === currentUser.uid) {
+        await deleteDoc(doc(db, `discussions/${entryId}/comments`, id));
+      }
     };
     await deleteWithReplies(commentId);
   };
 
+  // CollapsibleReplies component for mobile-friendly replies
+  function CollapsibleReplies({ commentId, level, childrenCount, render, showCount = 1 }) {
+    const [expanded, setExpanded] = useState(false);
+    const replies = render(commentId, level+1);
+    if (!replies || replies.length === 0) return null;
+    if (expanded) {
+      return (
+        <div>
+          {replies}
+          {childrenCount > showCount && (
+            <button style={{margin:'0.25em 0 0.5em 1em',fontSize:'0.95em'}} onClick={() => setExpanded(false)}>Hide Replies</button>
+          )}
+        </div>
+      );
+    }
+    return (
+      <div>
+        {replies.slice(0, showCount)}
+        {childrenCount > showCount && (
+          <button style={{margin:'0.25em 0 0.5em 1em',fontSize:'0.95em'}} onClick={() => setExpanded(true)}>
+            View {childrenCount - showCount + 1} more repl{childrenCount - showCount + 1 === 1 ? 'y' : 'ies'}
+          </button>
+        )}
+      </div>
+    );
+  }
+
   const renderComments = (parentId = null, level = 0) => {
-    return comments
-      .filter(c => c.parentId === parentId)
-      .map(comment => (
-        <div key={comment.id} className={`discussion-comment${level > 0 ? ' discussion-reply' : ''}`} style={{ marginLeft: level * 32 }}>
+    const thread = comments.filter(c => c.parentId === parentId);
+    return thread.map(comment => {
+      const replies = comments.filter(c => c.parentId === comment.id);
+      return (
+        <div key={comment.id} className={`discussion-comment${level > 0 ? ' discussion-reply' : ''}`} style={{ marginLeft: level * 18 }}>
           <div className="discussion-header">
             <span className="discussion-author">{comment.author}</span>
             <span className="discussion-date">{comment.timestamp?.toDate?.().toLocaleString?.() || ''}</span>
@@ -137,7 +193,7 @@ function DiscussionSection({ entryId }) {
               👎 {comment.downvotes || 0}
             </button>
             <button className="discussion-reply-btn" onClick={() => setReplyTo(comment.id)}>Reply</button>
-            {comment.authorUid === currentUser.uid && (
+            {comment.authorUid === currentUser?.uid && (
               <button className="discussion-delete-btn" onClick={() => handleDelete(comment.id)} title="Delete">🗑️</button>
             )}
           </div>
@@ -154,9 +210,17 @@ function DiscussionSection({ entryId }) {
               <button onClick={() => setReplyTo(null)}>Cancel</button>
             </div>
           )}
-          {renderComments(comment.id, level + 1)}
+          {/* Collapsible replies for mobile */}
+          <CollapsibleReplies
+            commentId={comment.id}
+            level={level}
+            childrenCount={replies.length}
+            render={renderComments}
+            showCount={1}
+          />
         </div>
-      ));
+      );
+    });
   };
 
   return (
@@ -181,11 +245,9 @@ function DiscussionSection({ entryId }) {
             />
             <button type="submit">Send</button>
           </form>
-          {loading ? <div>Loading...</div> : (
-            <div className="discussion-comments">
-              {renderComments()}
-            </div>
-          )}
+          <div className="discussion-comments">
+            {loading ? <div>Loading...</div> : renderComments()}
+          </div>
         </>
       )}
     </div>

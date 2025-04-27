@@ -8,7 +8,7 @@
     "build": "vite build",
     "lint": "eslint .",
     "preview": "vite preview",
-    "predeploy": "npm run build && npm run clean-dist && copy /Y .nojekyll dist\\.nojekyll",
+    "predeploy": "npm run build && npm run clean-dist && copy /Y .nojekyll dist\\.nojekyll && copy /Y dist\\index.html dist\\404.html",
     "deploy": "gh-pages -d dist",
     "clean-dist": "rimraf dist/.env dist/.env.example dist/.gitignore"
   },
@@ -16,6 +16,7 @@
     "firebase": "^11.6.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
+    "react-icons": "^5.5.0",
     "react-router-dom": "^7.5.1"
   },
   "devDependencies": {

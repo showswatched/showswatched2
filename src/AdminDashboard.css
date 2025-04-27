@@ -1,0 +1,163 @@
+/* Admin Dashboard Layout */
+.admin-dashboard-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 40px 0 0 0;
+  min-height: 100vh;
+  background: #f7fafd;
+  box-sizing: border-box;
+}
+
+.admin-dashboard-title {
+  font-size: 2rem;
+  font-weight: 700;
+  color: #205a7a;
+  margin-bottom: 24px;
+  letter-spacing: 1px;
+}
+
+.admin-dashboard-actions {
+  margin-bottom: 24px;
+  display: flex;
+  gap: 12px;
+}
+
+.admin-user-table {
+  border-collapse: collapse;
+  width: 90vw;
+  max-width: 1200px;
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 2px 18px #205a7a22;
+  overflow: hidden;
+  margin-bottom: 40px;
+}
+.admin-user-table th, .admin-user-table td {
+  padding: 16px 12px;
+  text-align: left;
+}
+.admin-user-table th {
+  background: #25609c;
+  color: #fff;
+  font-weight: 700;
+  font-size: 1.1rem;
+}
+.admin-user-table tr:nth-child(even) {
+  background: #f3f6fa;
+}
+.admin-user-table tr:hover {
+  background: #e6f0fa;
+}
+.admin-user-table td button {
+  background: #25609c;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  padding: 6px 18px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.18s;
+}
+.admin-user-table td button:hover {
+  background: #17476b;
+}
+
+/* Error and Loading */
+.admin-dashboard-error {
+  color: #d32f2f;
+  font-weight: 600;
+  margin-bottom: 18px;
+}
+.admin-dashboard-loading {
+  color: #25609c;
+  font-size: 1.1rem;
+  margin-bottom: 18px;
+}
+
+/* Messaging Modal Button */
+.admin-dashboard-message-btn {
+  background: #fff;
+  color: #25609c;
+  border: 2px solid #25609c;
+  border-radius: 6px;
+  padding: 8px 24px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.18s, color 0.18s;
+}
+.admin-dashboard-message-btn:hover {
+  background: #25609c;
+  color: #fff;
+}
+
+/* Enhanced Responsive for Admin Dashboard */
+@media (max-width: 900px) {
+  .admin-user-table {
+    width: 100vw;
+    max-width: 100vw;
+    font-size: 0.93rem;
+    display: block;
+    overflow-x: auto;
+    border-radius: 0;
+    margin-left: 0;
+    margin-right: 0;
+    box-sizing: border-box;
+    border-spacing: 0;
+    min-width: 600px;
+  }
+  .admin-user-table thead, .admin-user-table tbody, .admin-user-table tr, .admin-user-table th, .admin-user-table td {
+    display: table-cell;
+    vertical-align: middle;
+    white-space: nowrap;
+  }
+  .admin-dashboard-container {
+    width: 100vw;
+    max-width: 100vw;
+    box-sizing: border-box;
+    padding-left: 0;
+    padding-right: 0;
+  }
+}
+@media (max-width: 700px) {
+  .admin-user-table th, .admin-user-table td {
+    padding: 8px 4px;
+    font-size: 0.95rem;
+  }
+  .admin-dashboard-title {
+    font-size: 1.3rem;
+  }
+}
+@media (max-width: 600px) {
+  .admin-dashboard-title {
+    font-size: 1.1rem;
+    padding: 0 2vw;
+  }
+  .admin-dashboard-container {
+    padding: 10px 0 0 0;
+    width: 100vw;
+    max-width: 100vw;
+    box-sizing: border-box;
+  }
+  .admin-user-table {
+    width: 100vw;
+    max-width: 100vw;
+    font-size: 0.88rem;
+    border-radius: 0;
+    margin-left: 0;
+    margin-right: 0;
+    box-sizing: border-box;
+    border-spacing: 0;
+    min-width: 600px;
+  }
+  .admin-user-table thead, .admin-user-table tbody, .admin-user-table tr, .admin-user-table th, .admin-user-table td {
+    display: table-cell;
+    vertical-align: middle;
+    white-space: nowrap;
+  }
+  .admin-dashboard-actions {
+    flex-direction: column;
+    gap: 6px;
+    align-items: stretch;
+  }
+}

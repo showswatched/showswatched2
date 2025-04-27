@@ -81,7 +81,7 @@ export default function Home() {
           </div>
           <h1 className="sw-main-title sw-header-title-custom">ShowsWatched.com</h1>
           <p className="sw-main-sub sw-header-sub-custom">Track What You Watch. Discover What’s Next.</p>
-          <Link to="/signup"><button className="sw-main-btn sw-header-btn-custom">Get Started</button></Link>
+          <Link to="/login"><button className="sw-main-btn sw-header-btn-custom">Get Started</button></Link>
         </div>
         <div className="sw-section">
           <h2 className="sw-section-title" style={{textAlign:'center'}}>Features</h2>

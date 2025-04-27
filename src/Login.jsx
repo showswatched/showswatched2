@@ -41,7 +41,7 @@ export default function Login() {
           <button disabled={loading} type="submit" className="auth-btn">SIGN IN</button>
         </form>
         <div className="auth-link-row">
-          <span>Don't have an account? <a href="/showswatched2/signup" className="auth-link">Sign up</a></span>
+          <span style={{color:'#fff'}}>Don't have an account? <a href="/showswatched2/signup" className="auth-link">Sign up</a></span>
         </div>
       </div>
     </div>

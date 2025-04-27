@@ -145,6 +145,9 @@ export default function MyShows() {
                   Status: {show.status}
                   <button onClick={() => handleEditShow(show)} style={{ marginLeft: '1em' }}>Edit</button>
                   <button onClick={() => handleDeleteShow(show.id)} style={{ marginLeft: '0.5em' }}>Delete</button>
+                  {show.tmdbId && show.season && (
+                    <ShowEpisodes show={show} />
+                  )}
                 </>
               )}
             </li>
@@ -154,3 +157,104 @@ export default function MyShows() {
     </div>
   );
 }
+
+function ShowEpisodes({ show }) {
+  const [expanded, setExpanded] = useState(false);
+  const [seasons, setSeasons] = useState([]);
+  const [selectedSeason, setSelectedSeason] = useState(null);
+  const [episodes, setEpisodes] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+
+  // Fetch seasons when expanded
+  const handleShowMore = async () => {
+    if (!expanded && show.tmdbId) {
+      setLoading(true);
+      setError('');
+      try {
+        const apiKey = import.meta.env.VITE_TMDB_API_KEY;
+        const url = `https://api.themoviedb.org/3/tv/${show.tmdbId}?api_key=${apiKey}`;
+        const res = await fetch(url);
+        const data = await res.json();
+        setSeasons(data.seasons || []);
+        // Default to first season if available
+        if (data.seasons && data.seasons.length > 0) {
+          setSelectedSeason(data.seasons[0].season_number);
+        }
+      } catch (e) {
+        setError('Failed to load seasons.');
+      }
+      setLoading(false);
+    }
+    setExpanded(v => !v);
+  };
+
+  // Fetch episodes when selectedSeason changes
+  useEffect(() => {
+    const fetchEpisodes = async () => {
+      if (show.tmdbId && selectedSeason != null) {
+        setLoading(true);
+        setError('');
+        try {
+          const apiKey = import.meta.env.VITE_TMDB_API_KEY;
+          const url = `https://api.themoviedb.org/3/tv/${show.tmdbId}/season/${selectedSeason}?api_key=${apiKey}`;
+          const res = await fetch(url);
+          const data = await res.json();
+          setEpisodes(data.episodes || []);
+        } catch (e) {
+          setError('Failed to load episodes.');
+        }
+        setLoading(false);
+      }
+    };
+    fetchEpisodes();
+  }, [show.tmdbId, selectedSeason]);
+
+  return (
+    <div style={{ marginTop: '0.7em', marginBottom: '0.3em', textAlign: 'left' }}>
+      <button
+        onClick={handleShowMore}
+        className="dashboard-diary-collapse-btn"
+        style={{ minWidth: 140, fontWeight: 'bold', background: '#ffe066', color: '#205a7a', border: '2px solid #205a7a', fontSize: '1.08rem', boxShadow: '0 2px 8px #0005', marginBottom: 6 }}
+      >
+        {expanded ? 'Hide Episodes' : '▶ Show Episodes'}
+      </button>
+      {expanded && (
+        <div className="episodes-list" style={{ marginTop: 10, marginBottom: 8, background: '#f8f9fa', borderRadius: 8, padding: '10px 16px', boxShadow: '0 1px 6px #0002' }}>
+          {loading ? <div>Loading...</div> : error ? <div style={{ color: 'red' }}>{error}</div> : (
+            <>
+              {seasons.length > 0 && (
+                <div style={{ marginBottom: 10 }}>
+                  <label htmlFor="season-select" style={{ fontWeight: 600, color: '#205a7a', marginRight: 8 }}>Season:</label>
+                  <select
+                    id="season-select"
+                    value={selectedSeason || ''}
+                    onChange={e => setSelectedSeason(Number(e.target.value))}
+                    style={{ fontWeight: 600, fontSize: '1rem', padding: '0.3em 0.7em', borderRadius: 5, border: '1px solid #205a7a', color: '#205a7a', background: '#fff' }}
+                  >
+                    {seasons.map(season => (
+                      <option key={season.id || season.season_number} value={season.season_number}>
+                        {season.name || `Season ${season.season_number}`}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+              {episodes.length > 0 ? (
+                <ul style={{ paddingLeft: 18, marginBottom: 0 }}>
+                  {episodes.map(ep => (
+                    <li key={ep.id || ep.episode_number} style={{ marginBottom: 3, color: '#205a7a', fontWeight: 500 }}>
+                      <strong>Ep {ep.episode_number}:</strong> {ep.name} {ep.air_date ? <span style={{ color: '#888', fontWeight: 400 }}>({ep.air_date})</span> : ''}
+                    </li>
+                  ))}
+                </ul>
+              ) : <div>No episodes found.</div>}
+            </>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+export { ShowEpisodes };

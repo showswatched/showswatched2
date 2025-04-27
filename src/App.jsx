@@ -13,6 +13,8 @@ import MyShows from './MyShows';
 import AdminDashboard from './AdminDashboard';
 import Home from './Home';
 import UserDashboard from './UserDashboard';
+import TMDbAttribution from "./TMDbAttribution";
+import VerifyEmail from './VerifyEmail';
 
 // Helper to check admin (for demo: set admin UID in code, or check Firestore user doc)
 const ADMIN_UIDS = [
@@ -116,24 +118,35 @@ function Dashboard() {
       </p>
       {/* TODO: Add shows list and features here */}
       <p>Welcome! Start adding your watched shows.</p>
+      {/* TMDb Attribution Footer */}
+      <TMDbAttribution />
     </div>
   );
 }
 
 export default function App() {
-  const { currentUser } = useAuth();
+  const { currentUser, emailVerified } = useAuth();
   return (
     <Routes>
       <Route path="/login" element={<Login />} />
       <Route path="/signup" element={<Signup />} />
+      <Route path="/verify-email" element={<VerifyEmail />} />
       <Route path="/admin" element={
         <PrivateRoute>
-          <AdminDashboard />
+          {currentUser && !emailVerified ? <Navigate to="/verify-email" replace /> : <AdminDashboard />}
         </PrivateRoute>
       } />
-      <Route path="/dashboard" element={<UserDashboard />} />
+      <Route path="/dashboard" element={
+        currentUser && !emailVerified ? <Navigate to="/verify-email" replace /> : <UserDashboard />
+      } />
       <Route path="/" element={
-        currentUser ? <Navigate to="/dashboard" /> : <Home />
+        currentUser ? (
+          !emailVerified ? <Navigate to="/verify-email" replace /> : <Navigate to="/dashboard" replace />
+        ) : <Home />
+      } />
+      {/* Block all other routes for unverified users */}
+      <Route path="*" element={
+        currentUser && !emailVerified ? <Navigate to="/verify-email" replace /> : <Navigate to="/" replace />
       } />
     </Routes>
   );

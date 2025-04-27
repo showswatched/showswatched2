@@ -2,6 +2,7 @@ import { useRef, useState } from 'react';
 import { useAuth } from './AuthContext';
 import { useNavigate } from 'react-router-dom';
 import './Home.css';
+import { sendEmailVerification } from 'firebase/auth';
 
 export default function Signup() {
   const emailRef = useRef();
@@ -21,8 +22,10 @@ export default function Signup() {
     setError('');
     setLoading(true);
     try {
-      await signup(emailRef.current.value, passwordRef.current.value);
-      navigate('/dashboard', { replace: true }); // Use replace to avoid history issues
+      const userCredential = await signup(emailRef.current.value, passwordRef.current.value);
+      await sendEmailVerification(userCredential.user);
+      setLoading(false);
+      navigate('/verify-email');
     } catch (err) {
       setError(err.message || 'Failed to create an account');
     }
@@ -48,7 +51,7 @@ export default function Signup() {
           <button disabled={loading} type="submit" className="auth-btn">Sign Up</button>
         </form>
         <div className="auth-link-row">
-          <span>Already have an account? <a href="/showswatched2/login" className="auth-link">Sign In</a></span>
+          <span style={{color:'#fff'}}>Already have an account? <a href="/showswatched2/login" className="auth-link">Sign In</a></span>
         </div>
       </div>
     </div>
